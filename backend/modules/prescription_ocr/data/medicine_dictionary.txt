@@ -1,0 +1,406 @@
+# Common generic and Indian brand medications.
+# One entry per line. Lines starting with # are ignored. Case-insensitive at match time.
+
+# --- Analgesics / antipyretics / NSAIDs ---
+paracetamol
+acetaminophen
+crocin
+calpol
+dolo
+ibuprofen
+brufen
+combiflam
+aspirin
+diclofenac
+voveran
+naproxen
+aceclofenac
+zerodol
+
+# --- Antibiotics ---
+amoxicillin
+amoxyclav
+augmentin
+clavam
+moxikind
+azithromycin
+azax
+azithral
+zithromax
+cefixime
+taxim-o
+cefpodoxime
+ciprofloxacin
+ciplox
+levofloxacin
+levoflox
+ofloxacin
+doxycycline
+metronidazole
+flagyl
+clindamycin
+erythromycin
+clarithromycin
+
+# --- Antidiabetics ---
+metformin
+glycomet
+glucophage
+gliclazide
+glimepiride
+amaryl
+sitagliptin
+januvia
+vildagliptin
+galvus
+insulin
+lantus
+humulin
+mixtard
+
+# --- Antihypertensives / cardiovascular ---
+telmisartan
+telma
+amlodipine
+amlong
+stamlo
+losartan
+losar
+atenolol
+metoprolol
+metolar
+ramipril
+cardace
+enalapril
+nitroglycerin
+nitrocontin
+isosorbide
+mononitrate
+nitroglycerin
+
+# --- Statins / lipid lowering ---
+atorvastatin
+atorva
+storvas
+rosuvastatin
+crestor
+simvastatin
+fenofibrate
+
+# --- Antiplatelet / anticoagulant ---
+aspirin
+ecosprin
+clopidogrel
+plavix
+warfarin
+
+# --- PPIs / antacids / GI ---
+pantoprazole
+pan
+pantop
+pantocid
+omeprazole
+omez
+esomeprazole
+nexium
+ranitidine
+rantac
+aciloc
+famotidine
+ondansetron
+emeset
+domperidone
+domstal
+metoclopramide
+hyoscine
+buscopan
+drotaverine
+drotin
+
+# --- Antihistamines / antiallergics ---
+cetirizine
+cetzine
+alerid
+levocetirizine
+levocet
+loratadine
+fexofenadine
+allegra
+chlorpheniramine
+montelukast
+montair
+
+# --- Respiratory ---
+salbutamol
+asthalin
+levosalbutamol
+levolin
+budesonide
+budecort
+formoterol
+theophylline
+deriphyllin
+
+# --- Steroids ---
+prednisolone
+wysolone
+hydrocortisone
+dexamethasone
+betamethasone
+
+# --- CNS / psychiatry ---
+diazepam
+alprazolam
+alprax
+clonazepam
+clonotril
+sertraline
+escitalopram
+fluoxetine
+amitriptyline
+
+# --- Thyroid ---
+levothyroxine
+thyronorm
+eltroxin
+
+# --- Diuretics ---
+furosemide
+lasix
+hydrochlorothiazide
+spironolactone
+aldactone
+
+# --- Vitamins / supplements ---
+methylcobalamin
+folic acid
+vitamin d3
+calcium
+iron
+ferrous
+becosules
+neurobion
+shelcal
+
+# --- ORS / antidiarrheal / laxatives ---
+ors
+electral
+loperamide
+lactulose
+cremaffin
+bisacodyl
+dulcolax
+
+# --- Antiparasitic ---
+albendazole
+zentel
+mebendazole
+ivermectin
+
+# --- Antifungal ---
+fluconazole
+itraconazole
+ketoconazole
+
+# --- Analgesic combos / others ---
+tramadol
+ultracet
+morphine
+gabapentin
+pregabalin
+
+# --- Cardiovascular (extended) ---
+bisoprolol
+concor
+carvedilol
+carca
+nebivolol
+nebicard
+diltiazem
+verapamil
+prazosin
+hydralazine
+methyldopa
+labetalol
+ivabradine
+ivabrad
+trimetazidine
+flavedon
+
+# --- Antidiabetics (extended) ---
+empagliflozin
+jardiance
+dapagliflozin
+forxiga
+linagliptin
+trajenta
+pioglitazone
+piozone
+glipizide
+acarbose
+voglibose
+voglib
+repaglinide
+
+# --- Antibiotics (extended) ---
+ceftriaxone
+monocef
+cefuroxime
+ceftum
+cefadroxil
+droxyl
+gentamicin
+amikacin
+vancomycin
+linezolid
+linospan
+nitrofurantoin
+niftran
+sulfamethoxazole
+septran
+bactrim
+trimethoprim
+
+# --- Analgesics (extended) ---
+nimesulide
+nimesil
+nise
+ketorolac
+ketonex
+mefenamic
+meftal
+piroxicam
+etoricoxib
+etoshine
+serratiopeptidase
+chymotrypsin
+chymoral
+trypsin
+
+# --- GI (extended) ---
+itopride
+itride
+levosulpiride
+sucralfate
+sucrace
+mesalamine
+mesacol
+rifaximin
+rifagut
+ursodeoxycholic
+udiliv
+ondem
+zofer
+
+# --- CNS / psychiatry (extended) ---
+paroxetine
+paxil
+venlafaxine
+venlor
+mirtazapine
+mirt
+duloxetine
+duzela
+risperidone
+risdone
+olanzapine
+oleanz
+quetiapine
+qutipin
+haloperidol
+serenace
+sodium valproate
+valance
+levetiracetam
+levipil
+carbamazepine
+tegrital
+phenytoin
+eptoin
+lamotrigine
+lamitor
+topiramate
+topamac
+
+# --- Respiratory (extended) ---
+tiotropium
+tiova
+fluticasone
+flohale
+ipratropium
+combivent
+ciclesonide
+ciclez
+
+# --- Endocrine / thyroid (extended) ---
+methimazole
+neo-mercazole
+liothyronine
+desmopressin
+
+# --- Renal / urology ---
+torasemide
+dytor
+indapamide
+natrilix
+tamsulosin
+urimax
+silodosin
+silodal
+finasteride
+finast
+dutasteride
+duprost
+solifenacin
+vesicare
+
+# --- Dermatology (common topicals & systemics) ---
+clobetasol
+tenovate
+mometasone
+elocom
+hydroquinone
+melalite
+azelaic acid
+isotretinoin
+sotret
+clindamycin
+acnesol
+benzoyl peroxide
+permethrin
+
+# --- Antiemetic & migraine ---
+sumatriptan
+suminat
+rizatriptan
+rizact
+flunarizine
+sibelium
+prochlorperazine
+stemetil
+
+# --- Common Indian fixed-dose combinations ---
+crocin advance
+combiflam
+saridon
+disprin
+sinarest
+cetzine-d
+allegra-d
+nise-d
+
+# --- Vitamins & supplements (extended) ---
+cyanocobalamin
+pyridoxine
+thiamine
+riboflavin
+ascorbic acid
+biotin
+zinc
+magnesium
+omega-3
+fish oil
+glucosamine
+chondroitin
+coenzyme q10
+coq10

@@ -43,10 +43,11 @@ httpx==0.28.1                   # For testing FastAPI endpoints
 # =========================================================================
 
 # --- Phase 2: Prescription OCR ---
-# pytesseract==0.3.13          # NOTE: also requires system install of tesseract-ocr binary
-# easyocr==1.7.2
-# Pillow==11.0.0
-# spacy==3.8.3
+pytesseract==0.3.13
+Pillow==11.0.0
+opencv-python-headless==4.10.0.84
+pypdfium2==4.30.0
+# easyocr deferred to v0.2.0 — adds ~250MB PyTorch dependency
 
 # --- Phase 3: Medical Imaging ---
 # torch==2.5.1                  # CPU build is fine for inference
