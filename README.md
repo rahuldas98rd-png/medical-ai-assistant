@@ -1,139 +1,243 @@
 # MediMind AI — Modular Medical AI Assistant
 
-A scalable, plugin-style medical AI assistant designed to grow. Every capability (diagnosis from input, prescription OCR, medical image analysis, chat) is a self-contained module that can be added, removed, or replaced without touching the rest of the system.
+![MediMind AI hero](app_demo/app_hero.png)
 
-> ⚠️ **Disclaimer**: This is an educational/assistance tool. It does NOT replace professional medical advice, diagnosis, or treatment. Always consult a qualified healthcare provider.
+A production-grade, plugin-style medical AI assistant. Every capability is a self-contained module that registers itself at startup — add a new one by dropping a folder in `backend/modules/`, nothing else changes.
 
-## Why this design
+> ⚠️ **Disclaimer**: Educational tool only. Does NOT replace professional medical advice, diagnosis, or treatment. Always consult a qualified healthcare provider.
 
-The project brief explicitly calls out future extensibility. So the core architectural decision is: **every medical capability is a Module**. Modules implement a common interface, register themselves at startup, and expose REST endpoints automatically. Adding a new capability (say, dermatology image analysis) means dropping a new folder in `backend/modules/` — nothing else changes.
+---
 
-## Core capabilities (Phase 1)
+## Screenshots
 
-1. **Manual-input diagnosis** — risk prediction for diabetes, hypertension, heart disease from user-entered symptoms/vitals (scikit-learn models).
-2. **Prescription OCR** — extract structured info (medicines, dosages, doctor, patient) from uploaded prescription images (Tesseract + spaCy NER).
-3. **Medical imaging** — classify MRI / CT / chest X-ray / USG images using transfer learning (PyTorch + pre-trained CNNs from torchvision and HuggingFace).
-4. **Medical chat assistant** — RAG-based Q&A grounded in trusted sources (free LLM via HuggingFace Inference API or local Ollama).
+### Home — Module Dashboard
+![Home page showing all 7 modules healthy](app_demo/app_preview_1.png)
+
+### Diabetes Risk Estimator
+![Diabetes risk result — 30.4% moderate risk with gauge chart and feature importances](app_demo/app_preview_2.png)
+
+### Hypertension Risk Estimator
+![Hypertension risk result — 18.4% low risk](app_demo/app_preview_6.png)
+
+### Heart Disease Risk Estimator
+![Heart disease risk result — 1.4% low risk, Cleveland dataset](app_demo/app_preview_7.png)
+
+### Liver Disease Risk Estimator
+![Liver disease risk result — 73% HIGH risk from LFT values](app_demo/app_preview_8.png)
+
+### Prescription OCR
+![Prescription image uploaded with extracted medicines table](app_demo/app_preview_3.png)
+
+### Chest X-Ray — Classification
+![Chest X-ray pathology probabilities list](app_demo/app_preview_4.png)
+
+### Chest X-Ray — Grad-CAM Heatmaps
+![Three Grad-CAM heatmap overlays with bar chart](app_demo/app_preview_5.png)
+
+### Brain MRI Tumor Classifier
+![Brain MRI — Meningioma prediction](app_demo/app_preview_9.png)
+
+![Brain MRI — all class probabilities bar chart](app_demo/app_preview_10.png)
+
+### Medical Chat Assistant (RAG)
+![RAG response about heart disease prevention](app_demo/app_preview_11.png)
+
+![Source citations panel — 3 knowledge-base articles with relevance scores](app_demo/app_preview_12.png)
+
+### Smart Analysis — Multi-Modal Orchestrator
+![Smart Analysis input form with symptoms, measurements, and brain MRI uploaded](app_demo/app_preview_13.png)
+
+![Smart Analysis results — Hypertension screened, Chest X-Ray Infiltration 61.1%](app_demo/app_preview_14.png)
+
+![Smart Analysis results continued — Heart Disease and Liver Disease flagged, key recommendations, previous consultations](app_demo/app_preview_15.png)
+
+---
+
+## What it does
+
+| Module | Capability |
+|---|---|
+| **Diabetes Risk** | Gradient-boosted risk score from glucose, BMI, age, etc. |
+| **Hypertension Risk** | Cardiovascular risk from BP, cholesterol, lifestyle factors |
+| **Heart Disease Risk** | Coronary artery disease risk (Cleveland dataset, XGBoost, ROC-AUC 0.94) |
+| **Liver Disease Risk** | Hepatic risk from liver function test values |
+| **Prescription OCR** | Extract medicines + dosages from prescription photos (Tesseract + fuzzy match) |
+| **Chest X-Ray** | 18-class pathology classification (DenseNet-121 pretrained) + Grad-CAM heatmap |
+| **Brain MRI** | Glioma / meningioma / pituitary / no-tumor (ResNet-50 fine-tuned on Colab) |
+| **Medical Chat** | RAG Q&A grounded in MedlinePlus / WHO / CDC articles (Llama-3 or Ollama) |
+| **Smart Analysis** | Paste symptoms → auto-routed to all relevant modules → unified report |
+
+---
 
 ## Tech stack (all permanently free)
 
-| Layer | Choice | Why |
-|---|---|---|
-| Backend | **FastAPI** | Async, auto OpenAPI docs, modular routers |
-| ML | **scikit-learn, PyTorch, MONAI** | Open source, vast pretrained model ecosystem |
-| OCR | **Tesseract + EasyOCR** | Free, offline, no API limits |
-| Frontend | **Streamlit** | Fast to build, easy to host free |
-| DB | **SQLite** (dev) → **Supabase free tier** (prod) | Zero setup → 500MB free DB |
-| Training compute | **Google Colab** | Free T4 GPU, ~12hr sessions |
-| Model hosting | **Hugging Face Hub** | Unlimited public models, free |
-| LLM | **HuggingFace Inference API** + **Ollama** (local fallback) | Free tier + offline option |
-| Deployment | **Hugging Face Spaces** / **Render free tier** | Permanently free public hosting |
-| Containerization | **Docker** | Reproducible everywhere |
+| Layer | Choice |
+|---|---|
+| Backend | FastAPI + SQLAlchemy + SQLite (swap to Supabase for prod) |
+| ML | scikit-learn, XGBoost, PyTorch (CPU inference), torchxrayvision |
+| OCR | Tesseract 5 + pypdfium2 (PDF support) |
+| RAG | ChromaDB + sentence-transformers/all-MiniLM-L6-v2 |
+| LLM | HuggingFace Inference API (Llama-3-8B) + Ollama phi3:mini fallback |
+| Frontend | Streamlit |
+| Training | Google Colab (free T4 GPU) → models pushed to HuggingFace Hub |
+| Deployment | Docker + Render.com (`render.yaml` included) |
 
-## Hardware fit
+---
 
-Built for your machine (i5-12400, 16GB RAM, no dGPU):
-- **Local development & inference** runs comfortably (FastAPI + scikit-learn + small CNNs in ONNX run fine on CPU).
-- **Training happens on Google Colab** — notebooks in `ml_training/` push trained models back to HuggingFace Hub for inference.
-- **Large LLMs** are NOT run locally. Use HF Inference API for cloud LLM calls, or Ollama with small models (Phi-3 mini, Llama 3.2 3B) if you need offline.
+## Quick start
 
-## Python version
-
-**Use Python 3.12.** As of May 2026, Python 3.14 still lacks wheels for several libraries we need in Phase 2-3 (PyTorch CUDA, MONAI, EasyOCR's full stack). Python 3.12 has the broadest, most stable ecosystem support and nothing we use benefits from 3.14-specific features.
-
-If you have multiple Pythons installed (use `py -0` to check), pin 3.12 explicitly when creating the virtual environment.
-
-## Quick start (Windows PowerShell)
-
-```powershell
-# 1. Clone and enter
-git clone <your-repo> medical-ai-assistant
-cd medical-ai-assistant
-
-# 2. Create virtual env with Python 3.12 specifically
-py -3.12 -m venv venv
-
-# 3. Activate it (PowerShell)
-.\venv\Scripts\Activate.ps1
-
-# If you get "running scripts is disabled on this system", run this ONCE
-# in the current PowerShell window, then retry activation:
-#   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-
-# Verify you're on 3.12
-python --version    # should show Python 3.12.x
-
-# 4. Upgrade pip and install dependencies
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-
-# 5. Copy env file (optional for Phase 1 — diabetes model needs no API keys)
-Copy-Item .env.example .env
-
-# 6. Train the starter model (~30 seconds, downloads Pima Indians dataset)
-python scripts\train_diabetes_model.py
-
-# 7. Run backend (this PowerShell window)
-uvicorn backend.main:app --reload --port 8000
-
-# 8. Open a SECOND PowerShell tab/window for the frontend:
-cd C:\Users\User\Desktop\portfolio_projects\ML_projects\medical-ai-assistant
-.\venv\Scripts\Activate.ps1
-streamlit run frontend\app.py
-
-# 9. Browser:
-#    Frontend: http://localhost:8501
-#    API docs: http://localhost:8000/docs
-```
-
-### Linux / macOS users
+### Option A — Docker (recommended)
 
 ```bash
-python3.12 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-python scripts/train_diabetes_model.py
-uvicorn backend.main:app --reload --port 8000   # terminal 1
-streamlit run frontend/app.py                   # terminal 2
+# Runs backend + frontend in one command
+docker compose up --build
+
+# Frontend: http://localhost:8501
+# API docs: http://localhost:8000/docs
 ```
+
+### Option B — Local (Windows PowerShell)
+
+```powershell
+# 1. Create venv with Python 3.12
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Install PyTorch CPU (separate step — special index URL)
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+# 4. Configure environment
+Copy-Item .env.example .env   # then edit .env — see Configuration section
+
+# 5. Train tabular models (~2 min total)
+python scripts/train_diabetes_model.py
+python scripts/train_hypertension_model.py
+python scripts/train_heart_disease_model.py
+python scripts/train_liver_disease_model.py
+
+# 6. Populate the chat knowledge base
+python scripts/ingest_knowledge_base.py
+
+# 7. Start backend (terminal 1)
+uvicorn backend.main:app --reload --port 8000
+
+# 8. Start frontend (terminal 2)
+streamlit run frontend/app.py
+```
+
+### Option C — Linux / macOS
+
+```bash
+python3.12 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+cp .env.example .env
+python scripts/train_diabetes_model.py   # repeat for hypertension/heart/liver
+python scripts/ingest_knowledge_base.py
+uvicorn backend.main:app --reload &
+streamlit run frontend/app.py
+```
+
+---
+
+## Configuration (`.env`)
+
+```env
+# Required for the chat assistant (free tier):
+HUGGINGFACE_TOKEN=hf_...
+
+# Optional — enable API key auth on all POST endpoints (leave unset for dev):
+API_KEY=your-secret-key
+
+# Switch to Supabase for production (code needs no changes):
+# DATABASE_URL=postgresql://postgres:[password]@db.[project].supabase.co:5432/postgres
+```
+
+For the Brain MRI classifier, the model is downloaded automatically from HuggingFace Hub on first run (requires `HUGGINGFACE_TOKEN`). Alternatively, place `brain_mri_resnet50_v0.1.0.pt` in `data/models/` manually.
+
+For the chat assistant fallback (no HF token), install Ollama and run:
+```bash
+ollama pull phi3:mini && ollama serve
+```
+
+---
 
 ## Project layout
 
 ```
 medical-ai-assistant/
-├── backend/                    # FastAPI server
-│   ├── main.py                 # App entry, auto-registers modules
-│   ├── config.py               # Pydantic settings (.env loader)
-│   ├── database.py             # SQLAlchemy engine + session
-│   ├── core/                   # Cross-cutting concerns
-│   │   ├── base_module.py      # Abstract base — every module inherits this
-│   │   ├── exceptions.py
-│   │   └── registry.py         # Module discovery & auto-registration
-│   └── modules/                # ← Add new capabilities HERE
-│       ├── manual_diagnosis/   # Diabetes / hypertension / heart risk
-│       ├── prescription_ocr/   # Prescription image → structured data
-│       ├── medical_imaging/    # X-ray / MRI / CT classification
-│       └── chat_assistant/     # Medical Q&A
-├── frontend/                   # Streamlit UI
-├── ml_training/                # Colab notebooks (push models to HF)
-├── data/                       # Datasets and trained models (gitignored)
-├── scripts/                    # Setup, training, utility scripts
-├── docs/                       # Detailed module docs
-├── ARCHITECTURE.md             # Design rationale
-└── ROADMAP.md                  # Phased delivery plan
+├── backend/
+│   ├── main.py                  # FastAPI app — auto-discovers all modules
+│   ├── config.py                # Pydantic settings (.env loader)
+│   ├── database.py              # SQLAlchemy models (PredictionLog, ConsultationHistory)
+│   ├── core/
+│   │   ├── base_module.py       # BaseModule interface every module implements
+│   │   ├── registry.py          # Auto-discovery at startup
+│   │   ├── auth.py              # X-API-Key middleware
+│   │   ├── audit_log.py         # Tamper-evident SHA-256 chain logger
+│   │   └── rate_limiter.py      # slowapi limiter singleton
+│   └── modules/
+│       ├── manual_diagnosis/    # Diabetes, hypertension, heart disease, liver disease
+│       ├── prescription_ocr/    # Tesseract OCR + fuzzy medicine matching
+│       ├── medical_imaging/     # Chest X-ray (DenseNet-121 + Grad-CAM)
+│       ├── brain_mri/           # Brain MRI (ResNet-50, 4-class)
+│       ├── chat_assistant/      # RAG pipeline (ChromaDB + LLM)
+│       ├── orchestrator/        # Smart Analysis — routes symptoms to all modules
+│       └── audit/               # Audit chain verification endpoint
+├── frontend/
+│   ├── app.py                   # Streamlit entry point
+│   └── pages/                   # One page per module + Smart Analysis
+├── backend/tests/               # 134 unit tests (pytest)
+├── ml_training/                 # Colab notebooks (Brain MRI training)
+├── scripts/                     # train_*.py, ingest_knowledge_base.py
+├── data/                        # models/ + db (gitignored)
+├── Dockerfile                   # Backend (multi-stage, includes Tesseract)
+├── Dockerfile.frontend          # Frontend (lightweight Streamlit image)
+├── docker-compose.yml           # Full stack — one command
+└── render.yaml                  # Render.com deploy config
 ```
+
+---
+
+## Security & audit
+
+- **API key auth** — set `API_KEY` in `.env`; every POST requires `X-API-Key` header. Unset = open dev mode.
+- **No PII stored** — raw inputs are never persisted; only SHA-256 hashes.
+- **Tamper-evident log** — every prediction row carries a `chain_hash = SHA256(prev_hash | module | input_hash)`. Verify integrity at:
+  ```
+  GET /api/v1/audit/verify
+  ```
+- **Rate limiting** — Smart Analysis endpoint: 15 requests/minute per IP.
+- **Safety blocklist** — chat assistant blocks crisis/self-harm keywords and redirects to emergency services.
+
+---
+
+## Running tests
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+pytest backend/tests -v -m "not integration"   # 134 unit tests, no models needed
+pytest backend/tests -v                         # includes integration tests (models required)
+```
+
+---
+
+## Deploy to Render
+
+1. Push to GitHub
+2. Render → New → Web Service → connect repo
+3. Render auto-detects `render.yaml`
+4. Set `HUGGINGFACE_TOKEN` and `API_KEY` in the Render environment dashboard
+
+---
 
 ## Adding a new module
 
-That's the whole point. See [docs/adding_a_module.md](docs/adding_a_module.md) for the step-by-step. TL;DR:
-
 1. `mkdir backend/modules/your_module`
-2. Create `router.py` (FastAPI router) and `service.py` (logic) inheriting from `BaseModule`.
-3. Restart server. The module is auto-discovered and its endpoints appear at `/api/v1/your_module/*`.
+2. Implement `BaseModule` subclass in `__init__.py` with `name`, `get_router()`, `on_startup()`
+3. Restart — auto-discovered, endpoints live at `/api/v1/your_module/*`
 
-## Read next
-
-- [ARCHITECTURE.md](ARCHITECTURE.md) — why everything is built this way
-- [ROADMAP.md](ROADMAP.md) — what ships when
-- [docs/free_services_setup.md](docs/free_services_setup.md) — getting free API keys
+See [ARCHITECTURE.md](ARCHITECTURE.md) and [ROADMAP.md](ROADMAP.md) for the full design rationale and delivery plan.
