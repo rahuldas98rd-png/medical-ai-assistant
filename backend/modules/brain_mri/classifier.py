@@ -92,7 +92,7 @@ class BrainMRIClassifier:
     def _load_local(self) -> None:
         try:
             model = _build_model()
-            state = torch.load(self._local_weights, map_location=self._device)
+            state = torch.load(self._local_weights, map_location=self._device, weights_only=True)
             model.load_state_dict(state)
             model.eval()
             self._model = model

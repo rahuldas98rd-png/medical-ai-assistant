@@ -70,5 +70,6 @@ dist/
 
 # Claude Code memory (local only)
 .claude/
+CLAUDE.md
 
 medical_AI_project_planning.txt

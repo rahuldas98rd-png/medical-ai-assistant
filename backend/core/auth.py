@@ -9,6 +9,8 @@ Usage in main.py:
     app.add_middleware(ApiKeyMiddleware)
 """
 
+import hmac
+
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -37,7 +39,7 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         provided = request.headers.get("X-API-Key", "")
-        if provided != settings.api_key:
+        if not hmac.compare_digest(provided, settings.api_key):
             return JSONResponse(
                 status_code=401,
                 content={
