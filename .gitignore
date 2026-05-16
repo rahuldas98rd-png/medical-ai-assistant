@@ -38,6 +38,7 @@ data/models/*.joblib
 data/models/*.onnx
 data/models/*.pt
 data/models/*.pth
+data/knowledge_base/
 
 # DB
 *.db
@@ -51,7 +52,23 @@ logs/
 # Streamlit
 .streamlit/secrets.toml
 
+# ChromaDB vector store (rebuilt by scripts/ingest_knowledge_base.py)
+chroma_db/
+.chroma/
+
+# Jupyter / Colab
+.ipynb_checkpoints/
+ml_training/*.ipynb_checkpoints/
+
+# HuggingFace cache
+.cache/huggingface/
+
 # Build / dist
 build/
 dist/
 *.egg
+
+# Claude Code memory (local only)
+.claude/
+
+medical_AI_project_planning.txt

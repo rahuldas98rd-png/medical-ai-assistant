@@ -1,5 +1,7 @@
-"""Chest X-ray classification page."""
+"""Chest X-ray classification page (v0.2.0): heatmaps, DICOM, view warning."""
 
+import base64
+import io
 import os
 
 import plotly.graph_objects as go
@@ -12,34 +14,33 @@ st.set_page_config(page_title="Chest X-Ray", page_icon="🫁", layout="wide")
 
 st.title("🫁 Chest X-Ray Classifier")
 st.caption(
-    "Multi-label pathology classification for chest X-rays. "
-    "**Educational use only — NOT a diagnosis.**"
+    "Multi-label pathology classification with Grad-CAM heatmaps. "
+    "Supports image (PNG/JPEG) and DICOM input. **Educational use only — NOT a diagnosis.**"
 )
 
 with st.container(border=True):
     st.warning(
-        "The model can flag possible signs of 18 pathologies but cannot replace "
-        "clinical interpretation. False positives and negatives are common. "
-        "Pretrained models inherit biases from training data (demographics, "
-        "acquisition equipment). Always consult a qualified radiologist.",
+        "AI predictions on medical images cannot replace radiologist "
+        "interpretation. Pretrained models have demographic and acquisition "
+        "biases. Always consult a qualified radiologist.",
         icon="⚠️",
     )
 
 uploaded = st.file_uploader(
-    "Upload a chest X-ray image",
-    type=["jpg", "jpeg", "png", "webp", "bmp"],
+    "Upload a chest X-ray (image or DICOM)",
+    type=["jpg", "jpeg", "png", "webp", "bmp", "dcm", "dicom"],
     accept_multiple_files=False,
 )
 
 if uploaded is None:
-    st.info("Upload a chest X-ray image to begin.")
+    st.info("Upload a chest X-ray to begin.")
     with st.expander("Where to find test X-rays"):
         st.markdown(
-            "- **Kaggle**: search 'Chest X-Ray Images Pneumonia' — ~5800 labeled samples.\n"
-            "- **NIH ChestX-ray14**: also on Kaggle.\n"
-            "- **Wikimedia Commons**: search 'chest radiograph' for public-domain examples.\n\n"
-            "Best results with **frontal (PA / AP) views** at reasonable resolution "
-            "(≥512px). Lateral views weren't well-represented in training data."
+            "- **Wikimedia Commons**: search 'Chest radiograph' or 'Pneumonia x-ray' "
+            "for public-domain examples (use frontal views — lateral views give "
+            "poor results, which the view-confidence warning will flag).\n"
+            "- **Kaggle 'Chest X-Ray Images Pneumonia'**: ~5800 labeled samples.\n"
+            "- **NIH ChestX-ray14** on Kaggle for more variety."
         )
     st.stop()
 
@@ -47,8 +48,12 @@ if uploaded is None:
 col_img, col_result = st.columns([1, 1])
 
 with col_img:
-    st.subheader("X-ray image")
-    st.image(uploaded, use_container_width=True)
+    st.subheader("Input")
+    if uploaded.name.lower().endswith((".dcm", ".dicom")):
+        st.info(f"📋 DICOM file: **{uploaded.name}** ({uploaded.size / 1024:.0f} KB)")
+        st.caption("Preview not shown inline for DICOM — click Analyze to process.")
+    else:
+        st.image(uploaded, use_container_width=True)
     run = st.button("Analyze", type="primary", use_container_width=True)
 
 if not run:
@@ -56,12 +61,12 @@ if not run:
 
 with col_result:
     st.subheader("Pathology probabilities")
-    with st.spinner("Running inference (CPU, ~3-5 s)..."):
+    with st.spinner("Running inference + heatmaps (CPU, ~5-12 s)..."):
         try:
             resp = requests.post(
                 f"{BACKEND}/medical_imaging/chest_xray",
-                files={"file": (uploaded.name, uploaded.getvalue(), uploaded.type)},
-                timeout=60,
+                files={"file": (uploaded.name, uploaded.getvalue(), uploaded.type or "application/octet-stream")},
+                timeout=120,
             )
         except requests.exceptions.RequestException as e:
             st.error(f"Backend unreachable: {e}")
@@ -72,6 +77,20 @@ with col_result:
         st.stop()
 
     data = resp.json()
+
+    # ---- View confidence warning ----
+    view = data["view_confidence"]
+    if view.get("warning"):
+        st.error(f"⚠️ {view['warning']}")
+        st.caption(
+            f"Spread: {view['spread']:.3f} · "
+            f"Pathologies in [0.4, 0.6]: {view['uncertain_count']}/18"
+        )
+    else:
+        st.success(
+            f"View confidence: looks like a frontal X-ray "
+            f"(spread {view['spread']:.3f})"
+        )
 
     # ---- Top findings ----
     top = data.get("top_findings", [])
@@ -85,15 +104,31 @@ with col_result:
             if f.get("description"):
                 st.caption(f["description"])
     else:
-        st.success(
-            "No pathologies detected above the 50% probability threshold. "
-            "Always verify with a qualified radiologist."
-        )
+        st.success("No pathologies above the 50% threshold.")
+
+# ---- Heatmaps section (full width) ----
+heatmap_findings = [f for f in data.get("top_findings", []) if f.get("heatmap_base64")]
+if heatmap_findings:
+    st.markdown("---")
+    st.subheader("Grad-CAM — where the model focused")
+    st.caption(
+        "Red regions had the strongest influence on each prediction. "
+        "Useful for sanity-checking whether the model is looking at anatomically "
+        "plausible locations."
+    )
+    cols = st.columns(min(len(heatmap_findings), 3))
+    for i, f in enumerate(heatmap_findings):
+        with cols[i % 3]:
+            img_bytes = base64.b64decode(f["heatmap_base64"])
+            st.image(
+                io.BytesIO(img_bytes),
+                caption=f"{f['name'].replace('_', ' ')} · {f['probability']:.1%}",
+                use_container_width=True,
+            )
 
 # ---- Full probability chart ----
 st.markdown("---")
 st.subheader("All pathology scores")
-
 preds = data["predictions"]
 fig = go.Figure(
     go.Bar(
@@ -121,7 +156,8 @@ st.plotly_chart(fig, use_container_width=True)
 
 with st.expander("Model details"):
     st.markdown(f"**Model**: `{data['model_name']}`")
-    st.markdown(f"**Image preprocessed to**: `{data['image_size_processed']}`")
-    st.caption(f"Inference time: `{data['processing_time_ms']} ms`")
+    st.markdown(f"**Input format**: `{data['input_format']}`")
+    st.markdown(f"**Image processed at**: `{data['image_size_processed']}`")
+    st.caption(f"Inference + heatmaps: `{data['processing_time_ms']} ms`")
 
 st.warning(data["disclaimer"], icon="⚠️")

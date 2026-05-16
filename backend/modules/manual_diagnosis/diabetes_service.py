@@ -233,24 +233,16 @@ class DiabetesService:
     def _log_prediction(
         self, req: DiabetesRiskRequest, proba: float, latency_ms: int
     ) -> None:
-        """Write to audit log without persisting raw PII."""
+        from backend.core.audit_log import log_prediction
         payload = req.model_dump_json().encode("utf-8")
-        input_hash = hashlib.sha256(payload).hexdigest()
-        try:
-            with get_session() as s:
-                s.add(
-                    PredictionLog(
-                        module_name="manual_diagnosis",
-                        module_version=MODEL_VERSION,
-                        input_hash=input_hash,
-                        prediction={"task": "diabetes", "probability": proba},
-                        confidence=proba,
-                        latency_ms=latency_ms,
-                    )
-                )
-        except Exception as e:
-            # Logging failure must NOT break inference
-            log.error("diabetes.audit_log_failed", error=str(e))
+        log_prediction(
+            module_name="manual_diagnosis",
+            module_version=MODEL_VERSION,
+            input_hash=hashlib.sha256(payload).hexdigest(),
+            prediction={"task": "diabetes", "probability": proba},
+            confidence=proba,
+            latency_ms=latency_ms,
+        )
 
 
 # Module-level singleton (the module's on_startup() calls .load())

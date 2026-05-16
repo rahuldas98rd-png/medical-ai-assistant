@@ -10,19 +10,24 @@ services:
     volumes:
       - ./data:/app/data    # persist trained models + sqlite db
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   frontend:
-    image: python:3.12-slim
-    working_dir: /app
-    command: >
-      bash -c "pip install --no-cache-dir streamlit==1.41.1 requests==2.32.3 plotly==5.24.1 &&
-               streamlit run frontend/app.py --server.address 0.0.0.0 --server.port 8501"
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
     ports:
       - "8501:8501"
     environment:
       - BACKEND_API_URL=http://backend:8000/api/v1
-    volumes:
-      - ./frontend:/app/frontend
+      # Set API_KEY here if you enable auth on the backend:
+      # - API_KEY=your-secret-key
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped

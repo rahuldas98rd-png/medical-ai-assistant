@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     # --- Model storage ---
     models_dir: Path = Path("./data/models")
 
+    # --- Authentication ---
+    # Set API_KEY in .env to enable key-based auth on all POST endpoints.
+    # Leave unset (default) for open dev mode.
+    api_key: str | None = None
+
     # --- Third-party (all optional for Phase 1) ---
     huggingface_token: str | None = None
     ollama_base_url: str = "http://localhost:11434"

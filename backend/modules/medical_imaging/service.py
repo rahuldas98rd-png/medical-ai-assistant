@@ -20,11 +20,12 @@ from backend.modules.medical_imaging.chest_xray_classifier import (
 from backend.modules.medical_imaging.schemas.chest_xray import (
     ChestXRayResponse,
     PathologyPrediction,
+    ViewConfidence,
 )
 
 log = structlog.get_logger()
 
-MAX_FILE_BYTES = 20 * 1024 * 1024  # 20 MB — medical images can be large
+MAX_FILE_BYTES = 50 * 1024 * 1024  # 50 MB — DICOM files can be large
 
 
 def _confidence_level(prob: float) -> str:
@@ -45,19 +46,29 @@ class ChestXRayService:
     def is_ready(self) -> bool:
         return self.classifier.is_ready()
 
-    def process(self, image_bytes: bytes) -> ChestXRayResponse:
+    def process(
+        self,
+        file_bytes: bytes,
+        content_type: str = "",
+        filename: str = "",
+        generate_heatmaps: bool = True,
+    ) -> ChestXRayResponse:
         if not self.is_ready():
             raise ModelNotLoadedError(
-                "Chest X-ray model is not loaded. Check backend startup logs — "
-                "the model downloads ~30 MB on first run and requires internet."
+                "Chest X-ray model is not loaded. Check backend startup logs."
             )
 
-        if len(image_bytes) > MAX_FILE_BYTES:
+        if len(file_bytes) > MAX_FILE_BYTES:
             raise InvalidInputError(
                 f"File exceeds {MAX_FILE_BYTES // (1024 * 1024)} MB limit."
             )
 
-        predictions_raw, latency_ms = self.classifier.predict(image_bytes)
+        preds_raw, view_raw, latency_ms, input_format = self.classifier.predict(
+            file_bytes,
+            content_type=content_type,
+            filename=filename,
+            generate_heatmaps=generate_heatmaps,
+        )
 
         predictions = [
             PathologyPrediction(
@@ -65,14 +76,17 @@ class ChestXRayService:
                 probability=p["probability"],
                 confidence_level=_confidence_level(p["probability"]),
                 description=PATHOLOGY_DESCRIPTIONS.get(p["name"], ""),
+                heatmap_base64=p.get("heatmap_base64"),
             )
-            for p in predictions_raw
+            for p in preds_raw
         ]
         top_findings = [
             p for p in predictions if p.probability >= TOP_FINDING_THRESHOLD
         ]
 
-        self._audit_log(image_bytes, top_findings, latency_ms)
+        view_confidence = ViewConfidence(**view_raw)
+
+        self._audit_log(file_bytes, top_findings, latency_ms, input_format, view_confidence)
 
         return ChestXRayResponse(
             predictions=predictions,
@@ -80,20 +94,26 @@ class ChestXRayService:
             model_name=MODEL_NAME,
             image_size_processed="224x224",
             processing_time_ms=latency_ms,
+            input_format=input_format,
+            view_confidence=view_confidence,
         )
 
-    def _audit_log(self, image_bytes, top_findings, latency_ms) -> None:
+    def _audit_log(self, file_bytes, top_findings, latency_ms, input_format, view) -> None:
         try:
             with get_session() as s:
                 s.add(PredictionLog(
                     module_name="medical_imaging",
                     module_version=MODEL_VERSION,
-                    input_hash=hashlib.sha256(image_bytes).hexdigest(),
+                    input_hash=hashlib.sha256(file_bytes).hexdigest(),
                     prediction={
                         "task": "chest_xray",
                         "model": MODEL_NAME,
+                        "input_format": input_format,
+                        "view_likely_frontal": view.likely_frontal_view,
+                        "view_spread": round(view.spread, 4),
                         "top_findings": [
-                            {"name": f.name, "p": f.probability} for f in top_findings
+                            {"name": f.name, "p": round(f.probability, 4)}
+                            for f in top_findings
                         ],
                     },
                     confidence=top_findings[0].probability if top_findings else None,

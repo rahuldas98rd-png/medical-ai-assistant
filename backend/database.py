@@ -11,7 +11,8 @@ from contextlib import contextmanager
 from datetime import datetime
 from typing import Iterator
 
-from sqlalchemy import JSON, Column, DateTime, Float, Integer, String, create_engine
+from sqlalchemy import JSON, Column, DateTime, Float, Integer, String, Text, create_engine
+from sqlalchemy import text as sa_text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from backend.config import get_settings
@@ -51,6 +52,25 @@ class PredictionLog(Base):
     prediction = Column(JSON, nullable=False)                    # arbitrary module output
     confidence = Column(Float, nullable=True)                    # optional, [0,1]
     latency_ms = Column(Integer, nullable=True)
+    # Tamper-evident chain: SHA256(prev_chain_hash | module_name | input_hash)
+    chain_hash = Column(String(64), nullable=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class ConsultationHistory(Base):
+    """
+    One row per orchestrator /analyze call — stores the full report for
+    per-user history. user_key is a short hash of the API key or client IP;
+    it never stores the raw value.
+    """
+
+    __tablename__ = "consultation_history"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_key = Column(String(16), index=True, nullable=False)   # first 16 hex chars of SHA-256
+    symptoms_preview = Column(String(200), nullable=True)       # first 200 chars of symptoms
+    overall_summary = Column(Text, nullable=True)
+    report_json = Column(JSON, nullable=False)                   # full OrchestratorReport dict
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
 
@@ -63,6 +83,19 @@ def init_db() -> None:
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
 
     Base.metadata.create_all(bind=engine)
+    _migrate()
+
+
+def _migrate() -> None:
+    """Apply additive schema changes to existing tables (SQLite-safe)."""
+    with engine.connect() as conn:
+        # Add chain_hash to prediction_log if it doesn't exist yet
+        cols = [r[1] for r in conn.execute(sa_text("PRAGMA table_info(prediction_log)"))]
+        if "chain_hash" not in cols:
+            conn.execute(sa_text(
+                "ALTER TABLE prediction_log ADD COLUMN chain_hash VARCHAR(64)"
+            ))
+            conn.commit()
 
 
 @contextmanager

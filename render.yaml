@@ -1,0 +1,38 @@
+# Render.com deployment configuration
+# Deploy the backend as a Docker web service.
+# Free tier: 512 MB RAM, shared CPU, spins down after 15 min inactivity.
+#
+# Steps to deploy:
+#   1. Push this repo to GitHub
+#   2. Go to https://render.com → New → Web Service → connect repo
+#   3. Render auto-detects this file; set the env vars listed below in the dashboard
+#   4. For the database, create a free Render PostgreSQL instance and copy the
+#      Internal Database URL into DATABASE_URL below.
+
+services:
+  - type: web
+    name: medimind-ai-backend
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: DATABASE_URL
+        # Replace with your Render PostgreSQL internal URL, or leave as SQLite for zero-setup:
+        value: sqlite:///./data/medimind.db
+      - key: HUGGINGFACE_TOKEN
+        sync: false   # set manually in Render dashboard (never commit the token)
+      - key: API_KEY
+        sync: false   # set manually in Render dashboard
+      - key: CORS_ORIGINS
+        value: "https://your-frontend-url.onrender.com,http://localhost:8501"
+    # Persistent disk for model weights + SQLite db (not available on free tier;
+    # upgrade to Starter to enable this)
+    # disk:
+    #   name: medimind-data
+    #   mountPath: /app/data
+    #   sizeGB: 5
